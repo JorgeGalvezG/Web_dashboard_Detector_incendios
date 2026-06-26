@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="IgnisGuard - Sistema IoT de Monitoreo y Detección de Incendios en Tiempo Real conectado a Firebase y ESP32.">
+  <title>IgnisGuard | Detector de Incendios IoT en Tiempo Real</title>
+  
+  <!-- Google Fonts (Outfit & Inter) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Iconos -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  
+  <!-- Chart.js por CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Estilos Personalizados Premium -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <div class="dashboard-container">
+    
+    <!-- HEADER PANEL -->
+    <header>
+      <div class="brand-section">
+        <div class="logo-icon">
+          <i class="fa-solid fa-fire-flame-curved"></i>
+        </div>
+        <div>
+          <h1>IgnisGuard</h1>
+          <span>Sistema de Monitoreo IoT</span>
+        </div>
+      </div>
+      
+      <div class="connection-status">
+        <div class="status-dot offline" id="status-dot"></div>
+        <span id="status-text">Conectando...</span>
+      </div>
+    </header>
+
+    <!-- BANNER DE ESTADO DEL SISTEMA -->
+    <div id="system-banner" class="system-state-banner">
+      <div class="state-info">
+        <span class="state-label">Estado Actual del Entorno</span>
+        <div class="state-value" id="system-state-val">
+          <i class="fa-solid fa-circle-notch fa-spin"></i> Cargando...
+        </div>
+        <span id="system-state-desc" style="font-size: 0.9rem; color: var(--text-secondary);">
+          Obteniendo lecturas de telemetría desde Firebase...
+        </span>
+      </div>
+      <div class="state-timestamp">
+        <span class="state-label">Última Actualización</span>
+        <span class="time-val" id="system-time-val">--:--:--</span>
+      </div>
+    </div>
+
+    <!-- TARJETAS DE SENSORES EN TIEMPO REAL -->
+    <section class="sensors-grid">
+      
+      <!-- Sensor Fuego Llama (KY-026) -->
+      <div class="sensor-card card-flame">
+        <div class="sensor-header">
+          <span class="sensor-title">Fuego (KY-026)</span>
+          <div class="sensor-icon">
+            <i class="fa-solid fa-fire"></i>
+          </div>
+        </div>
+        <div class="sensor-value-container">
+          <div class="sensor-value" id="val-flame">---</div>
+        </div>
+        <div class="sensor-status" id="state-flame">
+          <span>Esperando...</span>
+        </div>
+      </div>
+
+      <!-- Sensor Gas MQ-2 -->
+      <div class="sensor-card card-gas">
+        <div class="sensor-header">
+          <span class="sensor-title">Gas MQ-2</span>
+          <div class="sensor-icon">
+            <i class="fa-solid fa-wind"></i>
+          </div>
+        </div>
+        <div class="sensor-value-container">
+          <div class="sensor-value" id="val-gas">---</div>
+        </div>
+        <div class="sensor-status" id="state-gas">
+          <span>Esperando...</span>
+        </div>
+      </div>
+
+      <!-- Sensor Temperatura DHT11 -->
+      <div class="sensor-card card-temp">
+        <div class="sensor-header">
+          <span class="sensor-title">Temperatura</span>
+          <div class="sensor-icon">
+            <i class="fa-solid fa-thermometer"></i>
+          </div>
+        </div>
+        <div class="sensor-value-container">
+          <div class="sensor-value" id="val-temp">---</div>
+        </div>
+        <div class="sensor-status" id="state-temp">
+          <span>Esperando...</span>
+        </div>
+      </div>
+
+      <!-- Sensor Humedad DHT11 -->
+      <div class="sensor-card card-hum">
+        <div class="sensor-header">
+          <span class="sensor-title">Humedad</span>
+          <div class="sensor-icon">
+            <i class="fa-solid fa-droplet"></i>
+          </div>
+        </div>
+        <div class="sensor-value-container">
+          <div class="sensor-value" id="val-hum">---</div>
+        </div>
+        <div class="sensor-status" id="state-hum">
+          <span>Esperando...</span>
+        </div>
+      </div>
+
+      <!-- Sensor Luz LDR -->
+      <div class="sensor-card card-light">
+        <div class="sensor-header">
+          <span class="sensor-title">Luz LDR</span>
+          <div class="sensor-icon">
+            <i class="fa-solid fa-lightbulb"></i>
+          </div>
+        </div>
+        <div class="sensor-value-container">
+          <div class="sensor-value" id="val-light">---</div>
+        </div>
+        <div class="sensor-status" id="state-light">
+          <span>Esperando...</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- VISUALIZACIÓN: GRÁFICOS E INFORMACIÓN -->
+    <div class="visualization-panel">
+      
+      <!-- Panel de Gráficos: Clima -->
+      <article class="panel-card">
+        <div class="panel-header">
+          <h2 class="panel-title">
+            <i class="fa-solid fa-cloud-sun"></i> Clima (Temp / Humedad)
+          </h2>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">En Vivo</span>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="chart-clima"></canvas>
+        </div>
+      </article>
+
+      <!-- Panel de Gráficos: Seguridad -->
+      <article class="panel-card">
+        <div class="panel-header">
+          <h2 class="panel-title">
+            <i class="fa-solid fa-shield-halved"></i> Seguridad (Gas / Fuego)
+          </h2>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">En Vivo</span>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="chart-seguridad"></canvas>
+        </div>
+      </article>
+
+      <!-- Panel de Gráficos: Luz -->
+      <article class="panel-card">
+        <div class="panel-header">
+          <h2 class="panel-title">
+            <i class="fa-solid fa-lightbulb"></i> Iluminación (Luz)
+          </h2>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">En Vivo</span>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="chart-luz"></canvas>
+        </div>
+      </article>
+
+      <!-- Panel de Rangos / Umbrales -->
+      <article class="panel-card">
+        <div class="panel-header">
+          <h2 class="panel-title">
+            <i class="fa-solid fa-sliders"></i> Umbrales de Riesgo
+          </h2>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+          Definición de estados de alerta configurados en el hardware ESP32:
+        </p>
+        <div class="thresholds-list">
+          
+          <div class="threshold-item">
+            <div class="threshold-badge badge-critico">Crítico</div>
+            <div class="threshold-desc">
+              Fuego detectado <span class="threshold-condition">&lt; 2000 ADC</span> o Gas <span class="threshold-condition">&gt; 1500 PPM</span>.
+            </div>
+          </div>
+
+          <div class="threshold-item">
+            <div class="threshold-badge badge-alto">Alto</div>
+            <div class="threshold-desc">
+              Presencia de Gas <span class="threshold-condition">&gt; 300 PPM</span> o Luz Intensa <span class="threshold-condition">&gt; 8000 Luz</span>.
+            </div>
+          </div>
+
+          <div class="threshold-item">
+            <div class="threshold-badge badge-medio">Medio</div>
+            <div class="threshold-desc">
+              Calor elevado o anomalía térmica detectada <span class="threshold-condition">&gt; 28.1°C</span>.
+            </div>
+          </div>
+
+          <div class="threshold-item">
+            <div class="threshold-badge badge-bajo">Bajo</div>
+            <div class="threshold-desc">
+              Variables en condiciones normales y ambiente estable.
+            </div>
+          </div>
+
+        </div>
+      </article>
+
+    </div>
+
+    <!-- SECCIÓN DE HISTORIAL DE ALERTAS -->
+    <section class="history-section">
+      <div class="panel-header">
+        <h2 class="panel-title">
+          <i class="fa-solid fa-clock-rotate-left"></i> Registro Histórico Reciente
+        </h2>
+        <div class="actions-container">
+          <button id="btn-export" class="btn btn-primary">
+            <i class="fa-solid fa-file-csv"></i> Exportar a CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha y Hora</th>
+              <th>Categoría</th>
+              <th>Temperatura</th>
+              <th>Humedad</th>
+              <th>Gas (MQ-2)</th>
+              <th>Luz (LDR)</th>
+              <th>Flama (KY-026)</th>
+            </tr>
+          </thead>
+          <tbody id="table-body">
+            <!-- Rellenado dinámicamente -->
+          </tbody>
+        </table>
+        
+        <!-- Estado de carga / vacío -->
+        <div class="loading-spinner-container" id="loading-spinner">
+          <div class="spinner"></div>
+          <span>Cargando datos históricos...</span>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- CONTENEDOR DE ALERTAS TOAST -->
+  <div id="toast-container" class="alert-overlay"></div>
+
+  <!-- Código JavaScript principal (ES Module) -->
+  <script type="module" src="app.js"></script>
+
+</body>
+</html>
